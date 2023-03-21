@@ -32,9 +32,9 @@ jobs:
       - attach_workspace:
           at: .
       - run:
-          name: Install cdktf
+          name: Install cdktf-cli
           command: |
-            npm install -g cdktf@latest
+            npm install -g cdktf-cli@latest
       - run:
           name: Install Terraform
           command: |
@@ -57,9 +57,9 @@ jobs:
       - attach_workspace:
           at: .
       - run:
-          name: Install cdktf
+          name: Install cdktf-cli
           command: |
-            npm install -g cdktf@latest
+            npm install -g cdktf-cli@latest
       - run:
           name: Install Terraform
           command: |
