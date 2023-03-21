@@ -32,13 +32,17 @@ jobs:
       - attach_workspace:
           at: .
       - run:
-          name: terraform install
+          name: Install cdktf
+          command: |
+            npm install -g cdktf@latest
+      - run:
+          name: Install Terraform
           command: |
             curl -O https://releases.hashicorp.com/terraform/1.4.2/terraform_1.4.2_linux_amd64.zip
             unzip terraform_1.4.2_linux_amd64.zip
             mv terraform /usr/local/bin/
       - run:
-          name: terraform plan
+          name: Terraform Plan
           command: |
             cdktf diff
       - persist_to_workspace:
@@ -53,13 +57,17 @@ jobs:
       - attach_workspace:
           at: .
       - run:
-          name: terraform install
+          name: Install cdktf
+          command: |
+            npm install -g cdktf@latest
+      - run:
+          name: Install Terraform
           command: |
             curl -O https://releases.hashicorp.com/terraform/1.4.2/terraform_1.4.2_linux_amd64.zip
             unzip terraform_1.4.2_linux_amd64.zip
             mv terraform /usr/local/bin/
       - run:
-          name: terraform plan
+          name: Terraform Apply
           command: |
             cdktf deploy
 
