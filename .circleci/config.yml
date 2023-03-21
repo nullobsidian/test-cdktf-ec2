@@ -3,8 +3,9 @@ orbs:
   node: circleci/node@5.1.0 
 jobs:
   setup_and_build:
-    executor: node/default
-      - tag: 16.19.1
+    executor: 
+      name: node/default
+      tag: "16.19.1"
     steps:
       - checkout
       - node/install-packages:
