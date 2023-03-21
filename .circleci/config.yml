@@ -78,7 +78,7 @@ workflows:
       - hold_apply:
           type: approval
           requires:
-            - plan-apply
+            - plan_apply
       - apply:
           requires:
             - hold_apply
