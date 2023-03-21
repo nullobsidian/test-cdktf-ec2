@@ -1,0 +1,20 @@
+version: 2.1
+orbs:
+  node: circleci/node@5.1.0 
+jobs:
+  setup_and_build:
+    executor: node/default
+      tag: 16.19.1
+    steps:
+      - checkout
+      - node/install-packages:
+          pkg-manager: npm
+      - persist_to_workspace:
+          root: ~/project
+          paths:
+            - .
+
+workflows:
+  test_app_node:
+    jobs:
+      - setup_and_build
