@@ -1,8 +1,17 @@
 version: 2.1
 orbs:
-  node: circleci/node@5.1.0 
+  node: circleci/node@5.1.0
+
+parameters:
+  is-destroy:
+    type: boolean
+    default: false
+  target-env:
+    type: string
+    default: ""
+
 jobs:
-  setup_and_build:
+  install_packages:
     executor: 
       name: node/default
       tag: "16.19.1"
@@ -16,7 +25,60 @@ jobs:
           paths:
             - .
 
+  plan_apply:
+    docker:
+      - image: cimg/node:16.19.1
+    steps:
+      - attach_workspace:
+          at: .
+      - run:
+          name: terraform install
+          command: |
+            curl -0 https://releases.hashicorp.com/terraform/1.4.2/terraform_1.4.2_linux_amd64.zip
+            unzip terraform_1.4.2_linux_amd64.zip
+            mv terraform /usr/local/bin/
+      - run:
+          name: terraform plan
+          command: |
+            cdktf diff
+      - persist_to_workspace:
+          root: .
+          paths:
+            - .
+  
+  apply:
+    docker:
+      - image: cimg/node:16.19.1
+    steps:
+      - attach_workspace:
+          at: .
+      - run:
+          name: terraform install
+          command: |
+            curl -0 https://releases.hashicorp.com/terraform/1.4.2/terraform_1.4.2_linux_amd64.zip
+            unzip terraform_1.4.2_linux_amd64.zip
+            mv terraform /usr/local/bin/
+      - run:
+          name: terraform plan
+          command: |
+            cdktf deploy
+
 workflows:
-  test_app_node:
+  plan_approve_apply_dev:
+    when:
+      and:
+        - equal: [ main, << pipeline.git.branch >> ]
+        - equal: [ false, << pipeline.parameters.is-destroy >> ]
+        - not:  << pipeline.parameters.target-env >> 
     jobs:
-      - setup_and_build 
+      - install_packages
+      - plan_apply:
+          requires:
+            - install_packages
+      - hold_apply:
+          type: approval
+          requires:
+            - plan-apply
+      - apply:
+          requires:
+            - hold_apply
