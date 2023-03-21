@@ -10,6 +10,7 @@ jobs:
       - checkout
       - node/install-packages:
           pkg-manager: npm
+          app-dir: ~/project
       - persist_to_workspace:
           root: ~/project
           paths:
@@ -18,4 +19,4 @@ jobs:
 workflows:
   test_app_node:
     jobs:
-      - setup_and_build
+      - setup_and_build 
