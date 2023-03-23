@@ -11,9 +11,11 @@ class MyStack extends TerraformStack {
       region: "us-east-1",
     });
 
+    const environment = process.env.ENVIRONMENT
+
     new S3Backend(this, {
       bucket: "test-api-cdktf",
-      key: "terraform.tfstate",
+      key: environment + "/terraform.tfstate",
       region: "us-east-1",
     });
 

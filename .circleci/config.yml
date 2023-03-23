@@ -19,18 +19,51 @@ jobs:
       - checkout
       - node/install-packages:
           pkg-manager: npm
-          app-dir: ~/project
+          app-dir: ./cdktf
+      # - node/install-packages:
+      #     pkg-manager: npm
+      #     app-dir: ./lambdas/example
+      # - node/install-packages:
+      #     pkg-manager: npm
+      #     app-dir: ./lambdas/example2
+      # - node/install-packages:
+      #     pkg-manager: npm
+      #     app-dir: ./lambdas/example3
       - persist_to_workspace:
-          root: ~/project
+          root: /home/circleci
           paths:
-            - .
+            - project/*
+    
+  # run_build:
+  #   docker:
+  #     - image: cimg/node:16.19.1
+  #   steps:
+  #     - attach_workspace:
+  #         at: /home/circleci
+  #     - run: 
+  #         name: Install Typescript
+  #         command: |
+  #           npm install -g typescript@latest
+  #     - run:
+  #         name: Run and Build Lambdas
+  #         command: |
+  #           npm --prefix ./lambdas/example run build
+  #           npm --prefix ./lambdas/example2 run build
+  #           npm --prefix ./lambdas/example3 run build
+  #     - persist_to_workspace:
+  #         root: /home/circleci
+  #         paths:
+  #           - project/*
 
   plan_apply:
     docker:
       - image: cimg/node:16.19.1
+    parameters:
+      target-env:
+        type: string
     steps:
       - attach_workspace:
-          at: .
+          at: /home/circleci
       - run:
           name: Install cdktf-cli
           command: |
@@ -41,21 +74,31 @@ jobs:
             curl -O https://releases.hashicorp.com/terraform/1.4.2/terraform_1.4.2_linux_amd64.zip
             unzip terraform_1.4.2_linux_amd64.zip
             mv terraform /usr/local/bin/
-      - run:
-          name: Terraform Plan
+            rm terraform_1.4.2_linux_amd64.zip
+      - run: 
+          name:  Define Environment Variable at Runtime
           command: |
-            cdktf diff
+             echo 'export ENVIRONMENT=<< parameters.target-env >>' >> "$BASH_ENV"
+             source "$BASH_ENV"
+      - run:
+          name: cdktf diff (terraform plan)
+          command: |
+            cd cdktf && cdktf diff
       - persist_to_workspace:
-          root: .
+          root: /home/circleci
           paths:
-            - .
+            - project/*
+            - .terraform.d/*
   
   apply:
     docker:
       - image: cimg/node:16.19.1
+    parameters:
+      target-env:
+        type: string
     steps:
       - attach_workspace:
-          at: .
+          at: /home/circleci
       - run:
           name: Install cdktf-cli
           command: |
@@ -66,21 +109,32 @@ jobs:
             curl -O https://releases.hashicorp.com/terraform/1.4.2/terraform_1.4.2_linux_amd64.zip
             unzip terraform_1.4.2_linux_amd64.zip
             mv terraform /usr/local/bin/
-      - run:
-          name: Terraform Apply
+            rm terraform_1.4.2_linux_amd64.zip
+      - run: 
+          name:  Define Environment Variable at Runtime
           command: |
-            cdktf deploy
+             echo 'export ENVIRONMENT=<< parameters.target-env >>' >> "$BASH_ENV"
+             source "$BASH_ENV"
+      - run:
+          name: cdktf deploy (terrform apply)
+          command: |
+            cd cdktf && cdktf deploy --auto-approve
 
 workflows:
   plan_approve_apply_dev:
     when:
       and:
-        - equal: [ main, << pipeline.git.branch >> ]
+        - equal: [ develop, << pipeline.git.branch >> ]
         - equal: [ false, << pipeline.parameters.is-destroy >> ]
-        - not:  << pipeline.parameters.target-env >> 
+        - not: << pipeline.parameters.target-env >> 
     jobs:
       - install_packages
+      # - run_build:
+      #     requires:
+      #       - install_packages
       - plan_apply:
+          context: dev
+          target-env: "dev"
           requires:
             - install_packages
       - hold_apply:
@@ -88,5 +142,32 @@ workflows:
           requires:
             - plan_apply
       - apply:
+          context: dev
+          target-env: "dev"
+          requires:
+            - hold_apply
+
+  plan_approve_apply_generic:
+    when:
+      and:
+        - equal: [ false, << pipeline.parameters.is-destroy >> ]
+        - << pipeline.parameters.target-env >> 
+    jobs:
+      - install_packages
+      # - run_build:
+      #     requires:
+      #       - install_packages
+      - plan_apply:
+          context: << pipeline.parameters.target-env >>
+          target-env: << pipeline.parameters.target-env >>
+          requires:
+            - install_packages
+      - hold_apply:
+          type: approval
+          requires:
+            - plan_apply
+      - apply:
+          context: << pipeline.parameters.target-env >>
+          target-env: << pipeline.parameters.target-env >>
           requires:
             - hold_apply
